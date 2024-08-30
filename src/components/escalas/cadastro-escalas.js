@@ -26,6 +26,7 @@ import {
   where,
   addDoc,
   doc,
+  orderBy,
 } from "firebase/firestore";
 
 const CadastrarEscala = () => {
@@ -85,7 +86,12 @@ const CadastrarEscala = () => {
           nome_coroinha: doc.data().nome_coroinha,
         }));
 
-        setNomesCoroinhas(coroinhasData);
+        // Ordena a lista de coroinhas pelo nome em ordem ascendente
+        const coroinhasOrdenados = coroinhasData.sort((a, b) =>
+          a.nome_coroinha.localeCompare(b.nome_coroinha)
+        );
+
+        setNomesCoroinhas(coroinhasOrdenados);
       } catch (error) {
         console.error("Erro ao buscar nomes dos coroinhas:", error);
       }
@@ -99,7 +105,13 @@ const CadastrarEscala = () => {
           id_objeto: doc.id,
           nome_objeto: doc.data().nome_objeto,
         }));
-        setNomesObjetosLiturgicos(objetosData);
+
+        // Ordena a lista de objetos litúrgicos pelo nome em ordem ascendente
+        const objetosOrdenados = objetosData.sort((a, b) =>
+          a.nome_objeto.localeCompare(b.nome_objeto)
+        );
+
+        setNomesObjetosLiturgicos(objetosOrdenados);
       } catch (error) {
         console.error("Erro ao buscar os objetos litúrgicos:", error);
       }

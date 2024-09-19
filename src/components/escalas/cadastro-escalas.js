@@ -144,8 +144,8 @@ const CadastrarEscala = () => {
       const alturaCoroinha2 = coroinha2Doc.data().altura_coroinha;
 
       // Verifica a diferença de altura e retorna uma mensagem se for significativa
-      if (Math.abs(alturaCoroinha1 - alturaCoroinha2) > 0.2) {
-        return "Muita diferença de altura";
+      if (Math.abs(alturaCoroinha1 - alturaCoroinha2) > 0.3) {
+        return "Muita diferença de altura entre os coroinhas.";
       }
 
       return null; // Retorna null se não houver problemas
@@ -173,33 +173,64 @@ const CadastrarEscala = () => {
     }
 
     const objetosLiturgicosEspecificos = [
-      "8au3rJzj1QmXX2te1fWw",
-      "av0lZuHiKEV9x2LsvYLS",
-      "QUMn6OBjvLzIGWWoqop8",
+      "8au3rJzj1QmXX2te1fWw", // Exemplo ID do castiçal
+      "av0lZuHiKEV9x2LsvYLS", // Exemplo ID do turíbulo
+      "QUMn6OBjvLzIGWWoqop8", // Exemplo ID da naveta
     ];
 
-    const coroinhasParaVerificar = coroinhas.filter((coroinha) =>
-      objetosLiturgicosEspecificos.includes(coroinha.id_objeto)
-    );
+    // Agrupando coroinhas por objeto litúrgico
+    const coroinhasAgrupados = coroinhas.reduce((acc, coroinha) => {
+      if (!acc[coroinha.id_objeto]) {
+        acc[coroinha.id_objeto] = [];
+      }
+      acc[coroinha.id_objeto].push(coroinha);
+      return acc;
+    }, {});
 
-    if (coroinhasParaVerificar.length >= 2) {
-      for (let i = 0; i < coroinhasParaVerificar.length; i++) {
-        for (let j = i + 1; j < coroinhasParaVerificar.length; j++) {
-          const resultado = await verificarAlturaCoroinhas(
-            coroinhasParaVerificar[i].id_coroinha,
-            coroinhasParaVerificar[j].id_coroinha
-          );
-          if (resultado) {
-            // Se houver uma mensagem de erro, mostre-a
-            setSnackbarMessage(resultado);
-            setSnackbarOpen(true);
-            setCoroinhasComErro([
-              coroinhasParaVerificar[i].id_coroinha,
-              coroinhasParaVerificar[j].id_coroinha,
-            ]);
-            return;
+    // Verifica coroinhas com o mesmo objeto litúrgico (exceto turíbulo e naveta)
+    for (const [idObjeto, coroinhasComMesmoObjeto] of Object.entries(
+      coroinhasAgrupados
+    )) {
+      if (
+        idObjeto !== "av0lZuHiKEV9x2LsvYLS" &&
+        idObjeto !== "QUMn6OBjvLzIGWWoqop8"
+      ) {
+        if (coroinhasComMesmoObjeto.length >= 2) {
+          for (let i = 0; i < coroinhasComMesmoObjeto.length; i++) {
+            for (let j = i + 1; j < coroinhasComMesmoObjeto.length; j++) {
+              const resultado = await verificarAlturaCoroinhas(
+                coroinhasComMesmoObjeto[i].id_coroinha,
+                coroinhasComMesmoObjeto[j].id_coroinha
+              );
+              if (resultado) {
+                setSnackbarMessage(resultado);
+                setSnackbarOpen(true);
+                setCoroinhasComErro([
+                  coroinhasComMesmoObjeto[i].id_coroinha,
+                  coroinhasComMesmoObjeto[j].id_coroinha,
+                ]);
+                return;
+              }
+            }
           }
         }
+      }
+    }
+
+    // Verifica turíbulo e naveta em conjunto
+    const turibulo = coroinhasAgrupados["av0lZuHiKEV9x2LsvYLS"] || [];
+    const naveta = coroinhasAgrupados["QUMn6OBjvLzIGWWoqop8"] || [];
+
+    if (turibulo.length > 0 && naveta.length > 0) {
+      const resultado = await verificarAlturaCoroinhas(
+        turibulo[0].id_coroinha,
+        naveta[0].id_coroinha
+      );
+      if (resultado) {
+        setSnackbarMessage(resultado);
+        setSnackbarOpen(true);
+        setCoroinhasComErro([turibulo[0].id_coroinha, naveta[0].id_coroinha]);
+        return;
       }
     }
 
@@ -215,8 +246,8 @@ const CadastrarEscala = () => {
 
       await addDoc(collection(db, "escalas"), {
         ...escala,
-        id_capela: capelaRef, // Armazena a referência da capela
-        coroinhas: coroinhasRefs, // Armazena as referências dos coroinhas e objetos
+        id_capela: capelaRef,
+        coroinhas: coroinhasRefs,
       });
 
       alertaCadastro();
